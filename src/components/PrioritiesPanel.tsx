@@ -1,4 +1,5 @@
 import { AlertCircle, Clock, MapPin } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 
 // Definimos la interfaz para TypeScript
 interface Priority {
@@ -12,6 +13,7 @@ interface Priority {
 }
 
 export default function PrioritiesPanel() {
+    const { showToast } = useToast();
     const priorities: Priority[] = [
         { id: 'INC-024', type: 'Personas aisladas', loc: 'Sector Norte', detail: '18 personas reportadas', status: 'Sin acceso confirmado', time: 'hace 4 min', level: 'ALTA' },
         { id: 'INC-021', type: 'Vía bloqueada', loc: 'Puente Sur', detail: 'requiere maquinaria', time: 'hace 7 min', level: 'ALTA' },
@@ -46,7 +48,16 @@ export default function PrioritiesPanel() {
                                 </div>
                             </div>
 
-                            <button className="bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold px-3 py-1 rounded h-fit mt-1">
+                            <button
+                                onClick={() =>
+                                    showToast({
+                                        title: `Prioridad Activa: ${item.id} - ${item.type}`,
+                                        message: `${item.loc} • ${item.detail}. Enlace táctico verificado.`,
+                                        type: item.level === 'ALTA' ? 'alert' : 'warning',
+                                    })
+                                }
+                                className="bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold px-3 py-1 rounded h-fit mt-1 transition cursor-pointer"
+                            >
                                 Revisar
                             </button>
                         </div>

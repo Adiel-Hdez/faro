@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useToast } from '../context/ToastContext';
 import {
   BatteryCharging,
   Truck,
@@ -93,6 +94,7 @@ const INITIAL_BRIGADES: Brigade[] = [
 ];
 
 export default function BrigadesView() {
+  const { showToast } = useToast();
   const [brigades] = useState<Brigade[]>(INITIAL_BRIGADES);
   const [statusFilter, setStatusFilter] = useState<string>('TODAS');
 
@@ -255,7 +257,13 @@ export default function BrigadesView() {
                 </div>
 
                 <button
-                  onClick={() => alert(`Abriendo canal de comunicación radial con ${item.name} en ${item.vhfChannel}`)}
+                  onClick={() =>
+                    showToast({
+                      title: `Enlace Radial: ${item.name}`,
+                      message: `Canal abierto en ${item.vhfChannel}. Telemetría sincronizada con la unidad.`,
+                      type: 'radio',
+                    })
+                  }
                   className="bg-gray-800 hover:bg-gray-900 text-white font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition"
                 >
                   <PhoneCall size={12} /> Contactar

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useToast } from '../context/ToastContext';
 import {
   Clock,
   Download
@@ -64,6 +65,7 @@ const LOG_ENTRIES: LogEntry[] = [
 ];
 
 export default function AuditLogView() {
+  const { showToast } = useToast();
   const [entries] = useState<LogEntry[]>(LOG_ENTRIES);
   const [filterType, setFilterType] = useState<string>('TODOS');
 
@@ -85,7 +87,13 @@ export default function AuditLogView() {
         </div>
 
         <button
-          onClick={() => alert('Generando exportación de bitácora en formato CSV auditado...')}
+          onClick={() =>
+            showToast({
+              title: 'Bitácora Exportada (CSV)',
+              message: 'El archivo CSV auditado con firmas de tiempo LoRa ha sido generado y descargado.',
+              type: 'download',
+            })
+          }
           className="bg-gray-800 hover:bg-gray-900 text-white font-semibold text-sm px-4 py-2.5 rounded-lg flex items-center gap-2 shadow-sm transition self-start"
         >
           <Download size={16} /> Exportar Bitácora (CSV)

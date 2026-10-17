@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useToast } from '../context/ToastContext';
 import {
   Truck,
   AlertTriangle,
@@ -109,6 +110,7 @@ const INITIAL_RESOURCES: ResourceItem[] = [
 ];
 
 export default function ResourcesView() {
+  const { showToast } = useToast();
   const [resources] = useState<ResourceItem[]>(INITIAL_RESOURCES);
   const [selectedCategory, setSelectedCategory] = useState<string>('TODAS');
 
@@ -130,7 +132,13 @@ export default function ResourcesView() {
         </div>
 
         <button
-          onClick={() => alert('Solicitud formal de convoy de abastecimiento enviada al Centro Logístico Regional.')}
+          onClick={() =>
+            showToast({
+              title: 'Convoy de Suministros Solicitado',
+              message: 'Solicitud formal enviada al Centro Logístico Regional con prioridad inmediata.',
+              type: 'success',
+            })
+          }
           className="bg-orange-500 hover:bg-orange-600 text-white font-semibold text-sm px-4 py-2.5 rounded-lg flex items-center gap-2 shadow-sm transition self-start"
         >
           <Truck size={18} /> Solicitar Convoy de Suministros

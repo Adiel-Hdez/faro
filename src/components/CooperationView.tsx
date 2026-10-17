@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useToast } from '../context/ToastContext';
 import {
   Phone,
   Send
@@ -75,6 +76,7 @@ const AGENCIES: Agency[] = [
 ];
 
 export default function CooperationView() {
+  const { showToast } = useToast();
   const [agencies] = useState<Agency[]>(AGENCIES);
 
   return (
@@ -91,7 +93,13 @@ export default function CooperationView() {
         </div>
 
         <button
-          onClick={() => alert('Convocatoria extraordinaria de Mesa de Crisis enviada a todos los oficiales de enlace.')}
+          onClick={() =>
+            showToast({
+              title: 'Mesa de Coordinación Convocada',
+              message: 'Convocatoria extraordinaria de Mesa de Crisis emitida con acuse a todos los oficiales de enlace.',
+              type: 'radio',
+            })
+          }
           className="bg-orange-500 hover:bg-orange-600 text-white font-semibold text-sm px-4 py-2.5 rounded-lg flex items-center gap-2 shadow-sm transition self-start"
         >
           <Send size={16} /> Convocar Mesa de Coordinación
@@ -148,7 +156,13 @@ export default function CooperationView() {
                 {agency.phone}
               </span>
               <button
-                onClick={() => alert(`Llamando al oficial de enlace ${agency.liaison} (${agency.phone})`)}
+                onClick={() =>
+                  showToast({
+                    title: `Enlace Telefónico: ${agency.name}`,
+                    message: `Conectando canal seguro de voz con el oficial ${agency.liaison} (${agency.phone})...`,
+                    type: 'phone',
+                  })
+                }
                 className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold px-3 py-1.5 rounded-lg transition"
               >
                 Llamar

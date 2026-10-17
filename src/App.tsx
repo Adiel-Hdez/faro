@@ -11,51 +11,55 @@ import InstructionsView from './components/InstructionsView';
 import CooperationView from './components/CooperationView';
 import AuditLogView from './components/AuditLogView';
 
+import { ToastProvider } from './context/ToastContext';
+
 function App() {
   const [activeTab, setActiveTab] = useState<string>('Operaciones');
 
   return (
-    <div className="flex h-screen bg-[#f3f4f6] font-sans antialiased text-gray-900">
-      {/* Sidebar con navegación funcional entre módulos */}
-      <Sidebar activeTab={activeTab} onSelectTab={(tab) => setActiveTab(tab)} />
+    <ToastProvider>
+      <div className="flex h-screen bg-[#f3f4f6] font-sans antialiased text-gray-900">
+        {/* Sidebar con navegación funcional entre módulos */}
+        <Sidebar activeTab={activeTab} onSelectTab={(tab) => setActiveTab(tab)} />
 
-      {/* Contenedor principal con margen izquierdo para no taparse con el sidebar */}
-      <div className="ml-64 flex-1 flex flex-col overflow-hidden">
-        {/* Barra superior de estado de conectividad */}
-        <Header />
+        {/* Contenedor principal con margen izquierdo para no taparse con el sidebar */}
+        <div className="ml-64 flex-1 flex flex-col overflow-hidden">
+          {/* Barra superior de estado de conectividad */}
+          <Header />
 
-        {/* Vista principal dinámica */}
-        <main className="flex-1 overflow-y-auto p-6">
-          {activeTab === 'Operaciones' && (
-            <div className="flex flex-col gap-6">
-              {/* Tarjetas KPI de resumen */}
-              <KpiCards />
+          {/* Vista principal dinámica */}
+          <main className="flex-1 overflow-y-auto p-6">
+            {activeTab === 'Operaciones' && (
+              <div className="flex flex-col gap-6">
+                {/* Tarjetas KPI de resumen */}
+                <KpiCards />
 
-              {/* Fila principal: Mapa Táctico Interactivo + Panel Lateral de Prioridades */}
-              <div className="flex flex-col xl:flex-row gap-6">
-                {/* Mapa Táctico FARO con capas y telemetría LoRa */}
-                <InteractiveMap />
+                {/* Fila principal: Mapa Táctico Interactivo + Panel Lateral de Prioridades */}
+                <div className="flex flex-col xl:flex-row gap-6">
+                  {/* Mapa Táctico FARO con capas y telemetría LoRa */}
+                  <InteractiveMap />
 
-                {/* Panel lateral de prioridades */}
-                <PrioritiesPanel />
+                  {/* Panel lateral de prioridades */}
+                  <PrioritiesPanel />
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {activeTab === 'Incidentes' && <IncidentsView />}
+            {activeTab === 'Incidentes' && <IncidentsView />}
 
-          {activeTab === 'Brigadas' && <BrigadesView />}
+            {activeTab === 'Brigadas' && <BrigadesView />}
 
-          {activeTab === 'Recursos' && <ResourcesView />}
+            {activeTab === 'Recursos' && <ResourcesView />}
 
-          {activeTab === 'Instrucciones' && <InstructionsView />}
+            {activeTab === 'Instrucciones' && <InstructionsView />}
 
-          {activeTab === 'Cooperación' && <CooperationView />}
+            {activeTab === 'Cooperación' && <CooperationView />}
 
-          {activeTab === 'Registro' && <AuditLogView />}
-        </main>
+            {activeTab === 'Registro' && <AuditLogView />}
+          </main>
+        </div>
       </div>
-    </div>
+    </ToastProvider>
   );
 }
 

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useToast } from '../context/ToastContext';
 import {
   Download,
   Radio
@@ -73,6 +74,7 @@ const PROTOCOLS: Protocol[] = [
 ];
 
 export default function InstructionsView() {
+  const { showToast } = useToast();
   const [selectedProtocol, setSelectedProtocol] = useState<Protocol>(PROTOCOLS[0]);
   const [filterCategory, setFilterCategory] = useState<string>('TODAS');
 
@@ -94,7 +96,13 @@ export default function InstructionsView() {
         </div>
 
         <button
-          onClick={() => alert('Descargando compendio de protocolos de emergencia para consulta offline (PDF).')}
+          onClick={() =>
+            showToast({
+              title: 'Descarga de Protocolos Iniciada',
+              message: 'Compendio de protocolos de emergencia para consulta offline generado en PDF.',
+              type: 'download',
+            })
+          }
           className="bg-gray-800 hover:bg-gray-900 text-white font-semibold text-sm px-4 py-2.5 rounded-lg flex items-center gap-2 shadow-sm transition self-start"
         >
           <Download size={16} /> Descargar Manual Offline

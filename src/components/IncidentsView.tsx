@@ -7,8 +7,13 @@ import {
   Search,
   CheckCircle2,
   Users,
-  ChevronRight
+  ChevronRight,
+  X,
+  AlertTriangle,
+  Radio,
+  Check
 } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 
 interface Incident {
   id: string;
@@ -22,6 +27,15 @@ interface Incident {
   reportedBy: string;
 }
 
+const AVAILABLE_BRIGADES = [
+  'Brigada Alfa (Rescate Agreste)',
+  'Brigada Bravo (Médica y Trauma)',
+  'Brigada Charlie (Vías y Maquinaria)',
+  'Brigada Delta (Evacuación Comunitaria)',
+  'Brigada Eco (Logística y Suministros)',
+  'Brigada Fox (Comunicaciones LoRa)',
+];
+
 const INITIAL_INCIDENTS: Incident[] = [
   {
     id: 'INC-024',
@@ -31,7 +45,7 @@ const INITIAL_INCIDENTS: Incident[] = [
     priority: 'ALTA',
     status: 'EN_CURSO',
     reportedAt: 'hace 6 min',
-    assignedBrigade: 'Brigada Alfa (Rescate)',
+    assignedBrigade: 'Brigada Alfa (Rescate Agreste)',
     reportedBy: 'Comité Comunitario Local (LoRa)',
   },
   {
@@ -52,7 +66,7 @@ const INITIAL_INCIDENTS: Incident[] = [
     priority: 'MEDIA',
     status: 'EN_CURSO',
     reportedAt: 'hace 25 min',
-    assignedBrigade: 'Brigada Charlie (Logística)',
+    assignedBrigade: 'Brigada Charlie (Vías y Maquinaria)',
     reportedBy: 'Cruz Roja - Delegación',
   },
   {
@@ -73,17 +87,30 @@ const INITIAL_INCIDENTS: Incident[] = [
     priority: 'BAJA',
     status: 'RESUELTO',
     reportedAt: 'hace 1h 10 min',
-    assignedBrigade: 'Brigada Delta (Evacuación)',
+    assignedBrigade: 'Brigada Delta (Evacuación Comunitaria)',
     reportedBy: 'Protección Civil',
   },
 ];
 
 export default function IncidentsView() {
+  const { showToast } = useToast();
   const [incidents, setIncidents] = useState<Incident[]>(INITIAL_INCIDENTS);
   const [filterPriority, setFilterPriority] = useState<string>('TODOS');
   const [filterStatus, setFilterStatus] = useState<string>('TODOS');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(INITIAL_INCIDENTS[0]);
+
+  // Modal para registrar nueva alerta con brigada asignada
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newSector, setNewSector] = useState('');
+  const [newPriority, setNewPriority] = useState<'ALTA' | 'MEDIA' | 'BAJA'>('ALTA');
+  const [newBrigade, setNewBrigade] = useState('');
+  const [newDetails, setNewDetails] = useState('');
+  const [newReportedBy, setNewReportedBy] = useState('Puesto de Mando Central FARO');
+
+  // Estado para cambiar brigada en el inspector
+  const [isChangingBrigade, setIsChangingBrigade] = useState(false);
 
   const filtered = incidents.filter((item) => {
     const matchesPriority = filterPriority === 'TODOS' || item.priority === filterPriority;
@@ -102,6 +129,92 @@ export default function IncidentsView() {
     if (selectedIncident?.id === id) {
       setSelectedIncident((prev) => (prev ? { ...prev, status: 'RESUELTO' } : null));
     }
+    showToast({
+      title: `Incidente Resuelto: ${id}`,
+      message: 'El incidente fue documentado y marcado como resuelto satisfactoriamente.',
+      type: 'success',
+    });
+  };
+
+  const handleAssignBrigade = (brigadeName: string) => {
+    if (!selectedIncident) return;
+    const updatedStatus = brigadeName ? 'EN_CURSO' : 'PENDIENTE';
+    
+    setIncidents((prev) =>
+      prev.map((inc) =>
+        inc.id === selectedIncident.id
+          ? { ...inc, assignedBrigade: brigadeName || undefined, status: inc.status === 'RESUELTO' ? 'RESUELTO' : updatedStatus }
+          : inc
+      )
+    );
+
+    setSelectedIncident((prev) =>
+      prev
+        ? {
+            ...prev,
+            assignedBrigade: brigadeName || undefined,
+            status: prev.status === 'RESUELTO' ? 'RESUELTO' : updatedStatus,
+          }
+        : null
+    );
+
+    setIsChangingBrigade(false);
+
+    if (brigadeName) {
+      showToast({
+        title: `Brigada Despachada`,
+        message: `${brigadeName} asignada a ${selectedIncident.id} (${selectedIncident.title}).`,
+        type: 'brigade',
+      });
+    } else {
+      showToast({
+        title: `Brigada Removida`,
+        message: `El incidente ${selectedIncident.id} quedó en espera de asignación de brigada.`,
+        type: 'warning',
+      });
+    }
+  };
+
+  const handleCreateNewAlert = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTitle.trim()) return;
+
+    const nextNumber = incidents.length + 25;
+    const newId = `INC-0${nextNumber}`;
+
+    const incident: Incident = {
+      id: newId,
+      title: newTitle.trim(),
+      sector: newSector.trim() || 'Sector Norte • Por georreferenciar',
+      priority: newPriority,
+      status: newBrigade ? 'EN_CURSO' : 'PENDIENTE',
+      details: newDetails.trim() || 'Alerta prioritaria registrada desde la consola de operaciones.',
+      reportedAt: 'ahora mismo',
+      assignedBrigade: newBrigade || undefined,
+      reportedBy: newReportedBy.trim() || 'Operador FARO',
+    };
+
+    setIncidents([incident, ...incidents]);
+    setSelectedIncident(incident);
+    setIsModalOpen(false);
+
+    // Limpiar formulario
+    setNewTitle('');
+    setNewSector('');
+    setNewPriority('ALTA');
+    setNewBrigade('');
+    setNewDetails('');
+    setNewReportedBy('Puesto de Mando Central FARO');
+
+    showToast({
+      title: `Nueva Alerta Registrada: ${newId}`,
+      message: `${incident.title} en ${incident.sector}. ${
+        incident.assignedBrigade
+          ? `Asignada de inmediato a ${incident.assignedBrigade}.`
+          : 'Pendiente de asignación de brigada.'
+      }`,
+      type: incident.assignedBrigade ? 'brigade' : 'alert',
+    });
   };
 
   return (
@@ -118,24 +231,10 @@ export default function IncidentsView() {
         </div>
 
         <button
-          onClick={() => {
-            const newId = `INC-0${incidents.length + 20}`;
-            const newIncident: Incident = {
-              id: newId,
-              title: 'Nueva Alerta Registrada',
-              sector: 'Sector Norte - Punto por geolocalizar',
-              details: 'Alerta ingresada manualmente desde el puesto de mando central.',
-              priority: 'ALTA',
-              status: 'PENDIENTE',
-              reportedAt: 'ahora mismo',
-              reportedBy: 'Operador FARO',
-            };
-            setIncidents([newIncident, ...incidents]);
-            setSelectedIncident(newIncident);
-          }}
-          className="bg-orange-500 hover:bg-orange-600 text-white font-semibold text-sm px-4 py-2.5 rounded-lg flex items-center gap-2 shadow-sm transition self-start"
+          onClick={() => setIsModalOpen(true)}
+          className="bg-orange-500 hover:bg-orange-600 text-white font-semibold text-sm px-4 py-2.5 rounded-lg flex items-center gap-2 shadow-sm transition self-start cursor-pointer active:scale-95"
         >
-          <Plus size={18} /> Registrar Nuevo Incidente
+          <Plus size={18} /> Registrar Nueva Alerta
         </button>
       </div>
 
@@ -199,7 +298,10 @@ export default function IncidentsView() {
               return (
                 <div
                   key={item.id}
-                  onClick={() => setSelectedIncident(item)}
+                  onClick={() => {
+                    setSelectedIncident(item);
+                    setIsChangingBrigade(false);
+                  }}
                   className={`bg-white border rounded-xl p-4 shadow-sm cursor-pointer transition flex items-start gap-4 relative overflow-hidden ${
                     isSelected
                       ? 'border-orange-500 ring-2 ring-orange-500/20 shadow-md'
@@ -257,10 +359,15 @@ export default function IncidentsView() {
                       {item.sector}
                     </p>
 
-                    {item.assignedBrigade && (
-                      <p className="text-xs text-blue-600 font-medium flex items-center gap-1.5 mt-2 bg-blue-50 px-2.5 py-1 rounded w-fit">
-                        <Users size={12} />
+                    {item.assignedBrigade ? (
+                      <p className="text-xs text-blue-700 font-semibold flex items-center gap-1.5 mt-2 bg-blue-50 px-2.5 py-1 rounded w-fit border border-blue-100">
+                        <Users size={12} className="text-blue-600" />
                         Asignado a: {item.assignedBrigade}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-amber-700 font-medium flex items-center gap-1.5 mt-2 bg-amber-50 px-2.5 py-1 rounded w-fit border border-amber-100">
+                        <AlertTriangle size={12} className="text-amber-500" />
+                        Sin brigada asignada
                       </p>
                     )}
                   </div>
@@ -319,27 +426,75 @@ export default function IncidentsView() {
                 </div>
               </div>
 
+              {/* Brigada de Intervención Section with Assignment UI */}
               <div>
-                <h5 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
-                  Brigada de Intervención
-                </h5>
-                <div className="flex items-center justify-between bg-blue-50/70 border border-blue-200/60 p-3 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <h5 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    Brigada de Intervención
+                  </h5>
+                  <button
+                    onClick={() => setIsChangingBrigade(!isChangingBrigade)}
+                    className="text-xs text-blue-700 hover:text-blue-900 font-bold underline cursor-pointer"
+                  >
+                    {isChangingBrigade
+                      ? 'Cerrar selector'
+                      : selectedIncident.assignedBrigade
+                      ? 'Cambiar brigada'
+                      : 'Asignar brigada'}
+                  </button>
+                </div>
+
+                <div className="bg-blue-50/70 border border-blue-200/60 p-3 rounded-xl">
                   <div className="flex items-center gap-2.5">
-                    <div className="bg-blue-600 text-white p-2 rounded-lg">
-                      <Users size={16} />
+                    <div className="bg-blue-600 text-white p-2.5 rounded-lg shadow-sm">
+                      <Users size={18} />
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <p className="text-xs font-bold text-blue-900">
                         {selectedIncident.assignedBrigade || 'Sin brigada asignada'}
                       </p>
                       <p className="text-[11px] text-blue-600">
-                        {selectedIncident.assignedBrigade ? 'En desplazamiento radial' : 'Requiere despacho'}
+                        {selectedIncident.assignedBrigade
+                          ? 'En desplazamiento y canal radial activo'
+                          : 'Requiere despacho urgente de brigada'}
                       </p>
                     </div>
                   </div>
-                  <button className="text-xs text-blue-700 hover:text-blue-900 font-semibold underline">
-                    {selectedIncident.assignedBrigade ? 'Cambiar' : 'Asignar'}
-                  </button>
+
+                  {/* Selector rápido de Brigadas */}
+                  {isChangingBrigade && (
+                    <div className="mt-3 pt-3 border-t border-blue-200/60 flex flex-col gap-1.5 animate-in fade-in duration-200">
+                      <p className="text-[11px] font-bold text-gray-600 mb-1">
+                        Selecciona la brigada para este incidente:
+                      </p>
+                      {AVAILABLE_BRIGADES.map((brigade) => {
+                        const isCurrent = selectedIncident.assignedBrigade === brigade;
+                        return (
+                          <button
+                            key={brigade}
+                            onClick={() => handleAssignBrigade(brigade)}
+                            className={`text-left text-xs p-2 rounded-lg font-medium flex items-center justify-between transition ${
+                              isCurrent
+                                ? 'bg-blue-600 text-white shadow-sm font-bold'
+                                : 'bg-white hover:bg-blue-100 text-gray-800 border border-blue-100'
+                            }`}
+                          >
+                            <span>{brigade}</span>
+                            {isCurrent && <Check size={14} className="text-white" />}
+                          </button>
+                        );
+                      })}
+
+                      {selectedIncident.assignedBrigade && (
+                        <button
+                          onClick={() => handleAssignBrigade('')}
+                          className="text-left text-xs p-2 mt-1 rounded-lg text-red-600 hover:bg-red-50 border border-red-200 font-medium transition"
+                        >
+                          ✕ Quitar brigada asignada (Dejar pendiente)
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -348,7 +503,7 @@ export default function IncidentsView() {
                 {selectedIncident.status !== 'RESUELTO' ? (
                   <button
                     onClick={() => handleResolve(selectedIncident.id)}
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 shadow-sm transition"
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 shadow-sm transition cursor-pointer"
                   >
                     <CheckCircle2 size={16} /> Marcar como Resuelto
                   </button>
@@ -358,10 +513,16 @@ export default function IncidentsView() {
                   </div>
                 )}
                 <button
-                  onClick={() => alert(`Notificación de radio VHF enviada para ${selectedIncident.id}`)}
-                  className="bg-gray-800 hover:bg-gray-900 text-white text-xs font-semibold py-2.5 px-4 rounded-lg transition"
+                  onClick={() =>
+                    showToast({
+                      title: `Alerta LoRa Emitida: ${selectedIncident.id}`,
+                      message: `Transmisión de emergencia propagada vía paquete LoRa 915 MHz y repetidores VHF para "${selectedIncident.title}".`,
+                      type: 'radio',
+                    })
+                  }
+                  className="bg-gray-800 hover:bg-gray-900 text-white text-xs font-semibold py-2.5 px-4 rounded-lg transition flex items-center gap-1.5 cursor-pointer"
                 >
-                  Emitir Alerta LoRa
+                  <Radio size={14} /> Emitir Alerta LoRa
                 </button>
               </div>
             </div>
@@ -372,6 +533,145 @@ export default function IncidentsView() {
           )}
         </div>
       </div>
+
+      {/* Modal Card para Registrar Nueva Alerta con Brigada */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="bg-gray-900 text-white px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="bg-orange-500 p-1.5 rounded-lg text-white">
+                  <AlertTriangle size={18} />
+                </div>
+                <div>
+                  <h3 className="font-black text-base tracking-tight">Registrar Nueva Alerta Operativa</h3>
+                  <p className="text-xs text-gray-300">Emisión de alerta y despacho inmediato de brigada</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-gray-400 hover:text-white p-1 rounded-lg transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleCreateNewAlert} className="p-6 flex flex-col gap-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                  Título de la Alerta / Incidente *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej: Personas incomunicadas por crecida o ceniza"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  className="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 font-medium"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                    Sector / Ubicación
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ej: Sector Norte • KM 86"
+                    value={newSector}
+                    onChange={(e) => setNewSector(e.target.value)}
+                    className="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                    Prioridad
+                  </label>
+                  <select
+                    value={newPriority}
+                    onChange={(e) => setNewPriority(e.target.value as 'ALTA' | 'MEDIA' | 'BAJA')}
+                    className="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 font-bold bg-white"
+                  >
+                    <option value="ALTA">Alta (Crítica / Rescate)</option>
+                    <option value="MEDIA">Media (Logística / Atención)</option>
+                    <option value="BAJA">Baja (Preventiva)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Asignación de Brigada Destacada */}
+              <div className="bg-orange-50/80 border border-orange-200/80 p-3.5 rounded-xl">
+                <label className="block text-xs font-bold text-orange-900 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                  <Users size={15} className="text-orange-600" />
+                  Asignar Brigada de Intervención
+                </label>
+                <p className="text-[11px] text-orange-700 mb-2">
+                  Puedes asignar una brigada ahora mismo para que se despache en el acto con la alerta.
+                </p>
+                <select
+                  value={newBrigade}
+                  onChange={(e) => setNewBrigade(e.target.value)}
+                  className="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 font-semibold bg-white text-gray-800"
+                >
+                  <option value="">-- Sin brigada aún (Pendiente de Despacho) --</option>
+                  {AVAILABLE_BRIGADES.map((b) => (
+                    <option key={b} value={b}>
+                      {b}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                  Detalles y Observaciones Operativas
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Describe la situación actual, accesibilidad de caminos, condiciones del viento y necesidades inmediatas..."
+                  value={newDetails}
+                  onChange={(e) => setNewDetails(e.target.value)}
+                  className="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                  Reportado Por / Canal
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ej: Radioaficionado VHF, Comité Comunitario LoRa"
+                  value={newReportedBy}
+                  onChange={(e) => setNewReportedBy(e.target.value)}
+                  className="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+
+              {/* Modal Actions */}
+              <div className="border-t border-gray-100 pt-3 flex items-center justify-end gap-3 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-semibold rounded-lg hover:bg-gray-100 transition cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm px-5 py-2.5 rounded-lg flex items-center gap-2 shadow-sm transition cursor-pointer active:scale-95"
+                >
+                  <Plus size={16} /> Registrar y Despachar Alerta
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
